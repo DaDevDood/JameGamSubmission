@@ -5,48 +5,66 @@ using UnityEngine;
 
 public class TractorController : MonoBehaviour
 {
-    public enum Axel
-    {
-        Front,
-        Rear
-    }
-    [Serializable]
-    public struct Wheel
-    {
-        public GameObject wheelModel;
-        public WheelCollider wheelCollider;
-        public Axel axel;
-    }
+    public float maxSpeed = 10f;
+    public float acceleration = 5f;
+    public float deceleration = 5f;
+    public float rotationSpeed = 100f;
 
-    public float maxAcceleration = 30.0f;
-    public float brakeAcceleration = 50.0f;
+    private float currentSpeed = 0f;
 
-    public List<Wheel> wheels;
-
-    float moveInput;
-
-    private Rigidbody carRb;
-    private void Start()
+    public GameObject frontTire;
+    public Animator FrontTireAnimator;
+    //public Animator BackTireAnimator;
+    bool Idle;
+    void FixedUpdate()
     {
-        carRb = GetComponent<Rigidbody>();
-    }
-    private void Update()
-    {
-        GetInputs();
-    }
-    private void LateUpdate()
-    {
-        Move();
-    }
-    void GetInputs()
-    {
-        moveInput = Input.GetAxis("Vertical");
-    }
-    void Move()
-    {
-        foreach(var wheel in wheels)
+        
+        // Acceleration and Deceleration
+        float moveInput = Input.GetAxis("Vertical");
+        Debug.Log("move input is: " + moveInput);
+        if (moveInput == 0)
         {
-            wheel.wheelCollider.motorTorque = moveInput * maxAcceleration * Time.deltaTime;
+            Idle = true;
         }
+        if (moveInput > 0f)
+        {
+            Idle = false;
+            // Accelerate
+            currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
+        }
+        else if (moveInput < 0f)
+        {
+            Idle = false;
+            // Decelerate (apply negative acceleration)
+            currentSpeed = Mathf.MoveTowards(currentSpeed, -maxSpeed, deceleration * Time.deltaTime);
+        }
+        else
+        {
+            // Decelerate to stop when not pressing any movement keys
+            currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime);
+        }
+
+
+        // Movement
+        transform.Translate(Vector3.forward * currentSpeed * Time.deltaTime);
+
+        // Rotation
+        
+        if (!Idle)
+        {
+            float rotationInput = Input.GetAxis("Horizontal");
+            transform.Rotate(Vector3.up, rotationInput * rotationSpeed * Time.deltaTime);
+        }
+
+        if (Input.GetKey(KeyCode.A))
+        {
+            FrontTireAnimator.SetFloat("SteerSpeed", -1);
+        }
+        else if (Input.GetKey(KeyCode.D))
+        {
+            FrontTireAnimator.SetFloat("SteerSpeed", 1);
+        }
+        else
+            FrontTireAnimator.SetFloat("SteerSpeed", 0);
     }
 }
